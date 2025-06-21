@@ -25,7 +25,7 @@ async def blacklist_artist(session: Uninfo, arparma: Arparma):
     new_artist_info = {
         "name": artist_name,
         "alias": "",
-        "type": "",
+        "type": type,
     }
 
     if any(a["name"] == new_artist_info["name"] for a in artists):
