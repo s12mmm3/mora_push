@@ -91,7 +91,11 @@ async def _(session: Uninfo, arparma: Arparma):
     logger.info(f"查询日期：{query_date}，区域：{region}")
     await mora_get(session, arparma, query_date, region)
 
-async def send_message(albums: List[Dict[str, Any]], target_date: datetime.date, user_id, group_id, type: SceneType): 
+async def send_message(albums: List[Dict[str, Any]],
+                       target_date: datetime.date,
+                       user_id,
+                       group_id,
+                       type: SceneType): 
     bot = nonebot.get_bot()
     await PlatformUtils.send_message(bot=bot,
                                      user_id=user_id,
@@ -180,18 +184,18 @@ async def daily_check_mora_new_songs():
     try:
         # 遍历每个开启推送的群
         bot = nonebot.get_bot()
-        group_list = [g["group_id"] for g in await bot.get_group_list()]
+        group_list = [str(g["group_id"]) for g in await bot.get_group_list()]
         for group_id in group_list:
-            if str(group_id) in groups_with_push_enabled:
+            if group_id in groups_with_push_enabled:
                 try:
                     await send_message(albums, today, None, group_id, type=SceneType.GROUP)
                 except Exception as e:
                     logger.error(f"群聊发送失败 {group_id}: {e}")
 
         # 遍历每个开启推送的用户
-        friend_list = [g["user_id"] for g in await bot.get_friend_list()]
+        friend_list = [str(g["user_id"]) for g in await bot.get_friend_list()]
         for user_id in friend_list:
-            if str(user_id) in private_with_push_enabled:
+            if user_id in private_with_push_enabled:
                 try:
                     await send_message(albums, today, user_id, None, type=SceneType.PRIVATE)
                 except Exception as e:

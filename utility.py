@@ -1,6 +1,7 @@
 from datetime import datetime
 from io import BytesIO
 import json
+from pathlib import Path
 import re
 from typing import Any, Dict, List
 
@@ -12,7 +13,7 @@ from zhenxun.utils._image_template import ImageTemplate
 from .checker import MoraReleaseChecker
 from zhenxun.configs.path_config import DATA_PATH
 
-config_path = DATA_PATH / "mora/config.json"
+config_path: Path = DATA_PATH / "mora/config.json"
 
 DATE_REGEX = re.compile(r'^\d{4}(/\d{1,2}){1,2}$')  # 匹配类似 2025/5/3 的格式
 
@@ -25,6 +26,7 @@ def get_date_str(date: datetime.date) -> str:
 # 读取配置文件
 def load_config() -> List[Dict[str, Any]]:
     if not config_path.exists():
+        config_path.parent.mkdir(parents=True, exist_ok=True)
         config_path.touch()
         save_config([])
         return []
