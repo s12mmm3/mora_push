@@ -204,10 +204,15 @@ async def daily_check_mora_new_songs():
     except Exception as e:
         logger.error(f"定时推送失败: {e}")
 
+
+async def push_new():
+    asyncio.create_task(daily_check_mora_new_songs())
+    pass
+
 from nonebot_plugin_apscheduler import scheduler
 from apscheduler.triggers.cron import CronTrigger
 scheduler.add_job(
-    daily_check_mora_new_songs,
+    push_new,
     CronTrigger(hour=23, minute=7),
     id="check_mora_new_songs"
 )
