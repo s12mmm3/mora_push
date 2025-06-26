@@ -122,7 +122,7 @@ async def mora_get(session: Uninfo, arparma: Arparma, query_date: datetime.date,
     type: SceneType = session.scene.type
     try:
         await MessageUtils.build_message([f"正在获取 {get_date_str(query_date)} 的 mora 新专辑"]).send()
-        albums = MoraReleaseChecker().get_albums(target_date = query_date, region = region)
+        albums = await MoraReleaseChecker.get_albums(target_date = query_date, region = region)
         user_id = id if type == SceneType.PRIVATE else None
         group_id = id if type == SceneType.GROUP else None
         
