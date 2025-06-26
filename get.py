@@ -152,6 +152,7 @@ async def unpush_new_albums(session: Uninfo, arparma: Arparma):
 
 async def daily_check_mora_new_songs():
     logger.info("开始执行每日检查任务：mora 新专辑推送")
+
     # 获取所有开启 auto_push 的群/用户
     groups_with_push_enabled = []
     private_with_push_enabled = []
@@ -182,25 +183,36 @@ async def daily_check_mora_new_songs():
         logger.error(f"拉取失败，尝试次数剩余: {retryTime}")
         await asyncio.sleep(20)
     try:
-        # 遍历每个开启推送的群
         bot = nonebot.get_bot()
+
+        # 获取当前机器人支持的群列表和好友列表
         group_list = [str(g["group_id"]) for g in await bot.get_group_list()]
+        friend_list = [str(g["user_id"]) for g in await bot.get_friend_list()]
+
+        tasks = []
+
+        # 构建群聊推送任务
         for group_id in group_list:
             if group_id in groups_with_push_enabled:
-                try:
-                    await send_message(albums, today, None, group_id, type=SceneType.GROUP)
-                except Exception as e:
-                    logger.error(f"群聊发送失败 {group_id}: {e}")
+                tasks.append(
+                    send_message(albums, today, None, group_id, type=SceneType.GROUP)
+                )
 
-        # 遍历每个开启推送的用户
-        friend_list = [str(g["user_id"]) for g in await bot.get_friend_list()]
+        # 构建私聊推送任务
         for user_id in friend_list:
             if user_id in private_with_push_enabled:
-                try:
-                    await send_message(albums, today, user_id, None, type=SceneType.PRIVATE)
-                except Exception as e:
-                    logger.error(f"好友发送失败 {user_id}: {e}")
-        
+                tasks.append(
+                    send_message(albums, today, user_id, None, type=SceneType.PRIVATE)
+                )
+
+        # 并行执行所有 send_message 任务
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # 检查结果是否有异常
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error(f"第 {i} 个消息发送任务失败: {result}")
+
     except Exception as e:
         logger.error(f"定时推送失败: {e}")
 

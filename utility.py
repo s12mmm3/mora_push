@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from io import BytesIO
 import json
@@ -185,15 +186,31 @@ class MoraHelper(MoraReleaseChecker):
                 artist_results.append(artist_result)
 
         result_info_list = []
-        for artist in artist_results:
-            result = [f"{artist['name']} 发布了 {len(artist['albums'])} 张专辑:\n"]
-            for idx, album in enumerate(artist['albums'], 1):
-                album_info = ALBUM_INFO.format(idx = idx, title = album['title'], artistName = album['artistName'], trackCount = album['trackCount'])
+
+        async def process_album(artist_name: str, idx: int, album: dict):
+            album_info = ALBUM_INFO.format(idx=idx, title=album['title'], artistName=album['artistName'], trackCount=album['trackCount'])
+            image_url = f"{album['packageUrl']}{album['packageimage']}"
+            image_data = await download_image(image_url)
+            return (album_info, image_data)
+
+        result_info_list = []
+
+        async def process_artist(artist):
+            tasks = []
+            artist_name = artist['name']
+            albums_list = artist['albums']
+            for idx, album in enumerate(albums_list, 1):
+                tasks.append(process_album(artist_name, idx, album))
+            results = await asyncio.gather(*tasks)
+
+            result = [f"{artist_name} 发布了 {len(albums_list)} 张专辑:\n"]
+            for album_info, image_data in results:
                 result.append(album_info)
-                image_url = f"{album['packageUrl']}{album['packageimage']}"
-                image_bytesio = await download_image(image_url)
-                result.append(image_bytesio)
-            result_info_list.append(result)
+                result.append(image_data)
+            return result
+
+        # 并行处理所有艺术家
+        result_info_list = await asyncio.gather(*[process_artist(artist) for artist in artist_results])
         return result_info_list
 
     @staticmethod 
