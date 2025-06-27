@@ -173,7 +173,7 @@ async def daily_check_mora_new_songs():
     albums = []
     target_date = today
     while retryTime > 0:
-        albums = MoraReleaseChecker.get_albums(
+        albums = await MoraReleaseChecker.get_albums(
             target_date = target_date,
             region = "jpn"
             )
