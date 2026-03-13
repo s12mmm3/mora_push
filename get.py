@@ -169,7 +169,7 @@ async def daily_check_mora_new_songs():
     now_jp = datetime.now(pytz.timezone("Asia/Tokyo"))
     today = now_jp.date()
 
-    retryTime = 15
+    retryTime = 30
     albums = []
     target_date = today
     while retryTime > 0:
