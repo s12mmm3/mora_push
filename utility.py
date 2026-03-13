@@ -190,7 +190,7 @@ class MoraHelper(MoraReleaseChecker):
         if name == artistName:
             return True
 
-        # 判断是否为纯字母（仅包含英文字母，不含空格、数字、符号）
+        # 判断是否为纯字母
         is_pure_alpha = all(c.isalpha() and c.isascii() for c in name)
 
         # 根据类型设定包含判断的阈值
@@ -201,7 +201,8 @@ class MoraHelper(MoraReleaseChecker):
             return name in artistName
 
         # 情况3：名字长度小于阈值，按分隔符分割后精确匹配
-        parts = re.split(r'[&,/]', artistName)
+        # 分隔符：& , 、 /
+        parts = re.split(r'[&,、/]', artistName)
         cleaned_parts = [part.strip() for part in parts if part.strip()]
         return name in cleaned_parts
     
