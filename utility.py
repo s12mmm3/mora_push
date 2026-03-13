@@ -10,6 +10,7 @@ import aiohttp
 
 from nonebot_plugin_uninfo import SceneType
 
+from zhenxun.configs.config import BotConfig
 from zhenxun.utils._image_template import ImageTemplate
 from .checker import MoraReleaseChecker
 from zhenxun.configs.path_config import DATA_PATH
@@ -153,7 +154,7 @@ def filter_albums(albums: List[Dict[str, Any]], blacklist_artists: List[Dict[str
 
 async def download_image(url: str) -> BytesIO:
     async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
+        async with session.get(url, proxy = BotConfig.system_proxy) as resp:
             if resp.status == 200:
                 image_data = await resp.read()
                 return BytesIO(image_data)

@@ -6,6 +6,8 @@ import json
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional, Tuple
 
+from zhenxun.configs.config import BotConfig
+
 # 每次拉取的页数
 FETCH_PAGE_TIME = 5
 
@@ -16,7 +18,8 @@ class MoraReleaseChecker:
     async def fetch_page(session: aiohttp.ClientSession, region: str, page: int, timestamp: int) -> dict:
         url = f"https://cf.mora.jp/contents/data/newrelease/web/newrelease/newRelease_{region}_{page:04d}.jsonp?_{timestamp}"
         try:
-            async with session.get(url) as response:
+            print(f"url: {url}")
+            async with session.get(url, proxy = BotConfig.system_proxy) as response:
                 if response.status != 200:
                     print(f"获取第{page}页失败，状态码：{response.status}")
                     return {}
