@@ -174,13 +174,44 @@ TOTAL_INFO = """
 
 """.strip()
 class MoraHelper(MoraReleaseChecker):
+    
+    """
+    判断是否是同一个艺人
+    
+    :param name: 关注的艺人名
+    :param artistName: 专辑的艺人名
+    """
+    @staticmethod
+    def is_same_artist(name: str, artistName: str):
+        name = name.strip()
+        artistName = artistName.strip()
+
+        # 情况1：完全相等
+        if name == artistName:
+            return True
+
+        # 判断是否为纯字母（仅包含英文字母，不含空格、数字、符号）
+        is_pure_alpha = all(c.isalpha() and c.isascii() for c in name)
+
+        # 根据类型设定包含判断的阈值
+        threshold = 6 if is_pure_alpha else 4
+
+        # 情况2：名字长度达到阈值，允许子串包含
+        if len(name) >= threshold:
+            return name in artistName
+
+        # 情况3：名字长度小于阈值，按分隔符分割后精确匹配
+        parts = re.split(r'[&,/]', artistName)
+        cleaned_parts = [part.strip() for part in parts if part.strip()]
+        return name in cleaned_parts
+    
     @staticmethod
     async def get_watch_artists_albums(albums: List[Dict[str, Any]], watch_artists: List[Dict[str, Any]]):
         artist_results = []
         for artist_info in watch_artists:
             matched_albums = [
                 album for album in albums
-                if artist_info["name"] in album["artistName"]# or (artist_info["alias"] and artist_info["alias"] in album["artistName"])
+                if MoraHelper.is_same_artist(artist_info["name"], album["artistName"])# or (artist_info["alias"] and artist_info["alias"] in album["artistName"])
             ]
             if matched_albums:
                 artist_result = {**artist_info, 'albums': matched_albums}
