@@ -16,6 +16,7 @@ import pytz
 
 from zhenxun.utils.platform import PlatformUtils
 
+from .checker import MoraFetchError, MoraReleaseChecker
 from .utility import *
 
 __plugin_meta__ = PluginMetadata(
@@ -77,9 +78,18 @@ _matcher = on_alconna(
 async def _(session: Uninfo, arparma: Arparma):
     target = arparma.query[str]("target") or ""
     region = arparma.query[str]("region") or "jpn"
+    try:
+        region = MoraReleaseChecker.normalize_region(region)
+    except ValueError as exc:
+        await MessageUtils.build_message(str(exc)).finish()
+        return
 
     if DATE_REGEX.match(target):
-        query_date = parse_date_str(target)
+        try:
+            query_date = parse_date_str(target)
+        except ValueError:
+            await MessageUtils.build_message("日期无效，请输入有效日期，如：mora新曲 2026/11/1").finish()
+            return
     elif target == '':
         now_jp = datetime.now(pytz.timezone("Asia/Tokyo"))
         today = now_jp.date()
@@ -173,15 +183,23 @@ async def daily_check_mora_new_songs():
     albums = []
     target_date = today
     while retryTime > 0:
-        albums = await MoraReleaseChecker.get_albums(
-            target_date = target_date,
-            region = "jpn"
+        try:
+            albums = await MoraReleaseChecker.get_albums(
+                target_date=target_date,
+                region="jpn",
             )
-        if len(albums) > 0:
-            break
-        retryTime = retryTime - 1
-        logger.error(f"拉取失败，尝试次数剩余: {retryTime}")
-        await asyncio.sleep(20)
+        except MoraFetchError as exc:
+            logger.error(f"mora 拉取不完整，放弃本次结果：{exc}")
+        else:
+            if albums:
+                break
+            logger.info("mora 暂无当日作品，等待更新")
+        retryTime -= 1
+        if retryTime:
+            await asyncio.sleep(20)
+    else:
+        logger.warning("mora 重试结束，未获取到完整且非空的当日作品，跳过推送")
+        return
     try:
         bot = nonebot.get_bot()
 

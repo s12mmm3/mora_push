@@ -14,10 +14,11 @@ from zhenxun.configs.config import BotConfig
 from zhenxun.utils._image_template import ImageTemplate
 from .checker import MoraReleaseChecker
 from zhenxun.configs.path_config import DATA_PATH
+from zhenxun.services.log import logger
 
 config_path: Path = DATA_PATH / "mora/config.json"
 
-DATE_REGEX = re.compile(r'^\d{4}(/\d{1,2}){1,2}$')  # 匹配类似 2025/5/3 的格式
+DATE_REGEX = re.compile(r'^\d{4}/\d{1,2}/\d{1,2}$')
 
 def parse_date_str(date_str: str) -> datetime.date:
     return datetime.strptime(date_str, "%Y/%m/%d").date()
@@ -153,7 +154,7 @@ def filter_albums(albums: List[Dict[str, Any]], blacklist_artists: List[Dict[str
     return result
 
 async def download_image(url: str) -> BytesIO:
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15)) as session:
         async with session.get(url, proxy = BotConfig.system_proxy) as resp:
             if resp.status == 200:
                 image_data = await resp.read()
@@ -222,8 +223,14 @@ class MoraHelper(MoraReleaseChecker):
 
         async def process_album(artist_name: str, idx: int, album: dict):
             album_info = ALBUM_INFO.format(idx=idx, title=album['title'], artistName=album['artistName'], trackCount=album['trackCount'])
-            image_url = f"{album['packageUrl']}{album['packageimage']}"
-            image_data = await download_image(image_url)
+            image_data = None
+            image_base = album.get("packageUrl")
+            image_name = album.get("packageimage") or album.get("fullsizeimage")
+            if image_base and image_name:
+                try:
+                    image_data = await download_image(f"{image_base}{image_name}")
+                except Exception as exc:
+                    logger.warning(f"mora 封面下载失败，保留文字结果：{exc}")
             return (album_info, image_data)
 
         result_info_list = []
@@ -239,7 +246,8 @@ class MoraHelper(MoraReleaseChecker):
             result = [f"{artist_name} 发布了 {len(albums_list)} 张专辑:\n"]
             for album_info, image_data in results:
                 result.append(album_info)
-                result.append(image_data)
+                if image_data is not None:
+                    result.append(image_data)
             return result
 
         # 并行处理所有艺术家
